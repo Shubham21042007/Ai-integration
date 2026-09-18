@@ -83,3 +83,153 @@ def create_project(project: ProjectCreate):
     return {
         "project": response.data[0]
     }
+    
+class ConversationCreate(BaseModel):
+    project_id: str
+    title: str | None = None
+
+
+@app.post("/api/conversations")
+def create_conversation(conversation: ConversationCreate):
+    response = (
+        supabase
+        .table("conversations")
+        .insert({
+            "project_id": conversation.project_id,
+            "title": conversation.title or "New Conversation"
+        })
+        .execute()
+    )
+
+    return {"conversation": response.data[0]}
+
+
+class MessageCreate(BaseModel):
+    conversation_id: str
+    role: str
+    content: str
+    model: str | None = None
+
+
+@app.post("/api/messages")
+def create_message(message: MessageCreate):
+    response = (
+        supabase
+        .table("messages")
+        .insert({
+            "conversation_id": message.conversation_id,
+            "role": message.role,
+            "content": message.content,
+            "model": message.model
+        })
+        .execute()
+    )
+
+    return {"message": response.data[0]}
+
+@app.get("/api/projects/{project_id}/conversations")
+def get_conversations(project_id: str):
+    response = (
+        supabase
+        .table("conversations")
+        .select("*")
+        .eq("project_id", project_id)
+        .order("created_at", desc=True)
+        .execute()
+    )
+
+    return {"conversations": response.data}
+
+
+@app.get("/api/conversations/{conversation_id}/messages")
+def get_messages(conversation_id: str):
+    response = (
+        supabase
+        .table("messages")
+        .select("*")
+        .eq("conversation_id", conversation_id)
+        .order("created_at", desc=False)
+        .execute()
+    )
+
+    return {"messages": response.data}
+
+
+# --------------------------------
+# MEMORY ENDPOINTS
+# --------------------------------
+
+class MemoryCreate(BaseModel):
+    project_id: str
+    memory_type: str
+    title: str | None = None
+    content: str
+
+
+@app.get("/api/projects/{project_id}/memories")
+def get_memories(project_id: str):
+    response = (
+        supabase
+        .table("memories")
+        .select("*")
+        .eq("project_id", project_id)
+        .order("created_at", desc=False)
+        .execute()
+    )
+
+    return {"memories": response.data}
+
+
+@app.post("/api/memories")
+def create_memory(memory: MemoryCreate):
+    response = (
+        supabase
+        .table("memories")
+        .insert({
+            "project_id": memory.project_id,
+            "memory_type": memory.memory_type,
+            "title": memory.title,
+            "content": memory.content
+        })
+        .execute()
+    )
+
+    return {"memory": response.data[0]}
+
+
+class MemoryUpdate(BaseModel):
+    memory_type: str | None = None
+    title: str | None = None
+    content: str | None = None
+
+
+@app.put("/api/memories/{memory_id}")
+def update_memory(memory_id: str, memory: MemoryUpdate):
+    update_data = {
+        key: value
+        for key, value in memory.model_dump().items()
+        if value is not None
+    }
+
+    response = (
+        supabase
+        .table("memories")
+        .update(update_data)
+        .eq("id", memory_id)
+        .execute()
+    )
+
+    return {"memory": response.data[0]}
+
+
+@app.delete("/api/memories/{memory_id}")
+def delete_memory(memory_id: str):
+    response = (
+        supabase
+        .table("memories")
+        .delete()
+        .eq("id", memory_id)
+        .execute()
+    )
+
+    return {"deleted": True}

@@ -1,0 +1,6 @@
+Terminal 1 — Frontend
+npm run dev
+
+Terminal 2 — Backend
+.\venv\Scripts\Activate.ps1
+python -m uvicorn main1:app --reload
